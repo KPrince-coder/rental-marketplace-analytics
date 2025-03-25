@@ -1,0 +1,22 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+.qodo
+
+# Compiled Python files
+*.pyc
+*.pyo
+*.pyd
+
+# Data directory
+data/
+
+# Environment files
+*.env
