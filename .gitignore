@@ -15,8 +15,5 @@ wheels/
 *.pyo
 *.pyd
 
-# Data directory
-data/
-
 # Environment files
 *.env
