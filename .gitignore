@@ -16,4 +16,8 @@ wheels/
 *.pyd
 
 # Environment files
-*.env
+.env
+.env.local
+.env.*.local
+.env.example
+.env.test
