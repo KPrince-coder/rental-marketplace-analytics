@@ -17,17 +17,28 @@ from sqlalchemy.orm import Session
 from src.database.connection import db
 from src.database.models import Apartment, ApartmentAttribute, UserViewing, Booking
 
-
 def load_apartments(session: Session, df: pd.DataFrame) -> None:
-    """Load apartments data from DataFrame into database."""
+    """
+    Load apartments data from DataFrame into database.
+    
+    Args:
+        session (Session): SQLAlchemy database session
+        df (pd.DataFrame): DataFrame containing apartment data
+        
+    The function handles null values in price and datetime fields:
+    - Converts price to Decimal for precise monetary calculations
+    - Parses dates with European format (day first)
+    """
     print(f"Loading {len(df)} apartments...")
     for _, row in df.iterrows():
         apartment = Apartment(
             id=row["id"],
             title=row["title"],
             source=row["source"],
+            # Handle potential NaN values in price field
             price=Decimal(str(row["price"])) if pd.notna(row["price"]) else None,
             currency=row["currency"],
+            # Parse dates with European format (day first)
             listing_created_on=pd.to_datetime(row["listing_created_on"], dayfirst=True),
             is_active=row["is_active"],
             last_modified_timestamp=pd.to_datetime(
@@ -39,7 +50,18 @@ def load_apartments(session: Session, df: pd.DataFrame) -> None:
 
 
 def load_apartment_attributes(session: Session, df: pd.DataFrame) -> None:
-    """Load apartment attributes data from DataFrame into database."""
+    """
+    Load apartment attributes data from DataFrame into database.
+    
+    Args:
+        session (Session): SQLAlchemy database session
+        df (pd.DataFrame): DataFrame containing apartment attributes
+        
+    Handles various data type conversions:
+    - Converts numerical fields (bathrooms, bedrooms, square_feet) to appropriate types
+    - Handles geographic coordinates as Decimal for precision
+    - Manages null values across all fields
+    """
     print(f"Loading {len(df)} apartment attributes...")
     for _, row in df.iterrows():
         attribute = ApartmentAttribute(
@@ -47,6 +69,7 @@ def load_apartment_attributes(session: Session, df: pd.DataFrame) -> None:
             category=row["category"],
             body=row["body"],
             amenities=row["amenities"],
+            # Convert numerical fields with null handling
             bathrooms=float(row["bathrooms"]) if pd.notna(row["bathrooms"]) else None,
             bedrooms=int(row["bedrooms"]) if pd.notna(row["bedrooms"]) else None,
             fee=Decimal(str(row["fee"])) if pd.notna(row["fee"]) else None,
@@ -54,12 +77,14 @@ def load_apartment_attributes(session: Session, df: pd.DataFrame) -> None:
             pets_allowed=row["pets_allowed"],
             price_display=row["price_display"],
             price_type=row["price_type"],
+            # Handle potential null values in square footage
             square_feet=int(row["square_feet"])
             if pd.notna(row["square_feet"])
             else None,
             address=row["address"],
             cityname=row["cityname"],
             state=row["state"],
+            # Convert geographic coordinates to Decimal for precision
             latitude=Decimal(str(row["latitude"]))
             if pd.notna(row["latitude"])
             else None,
@@ -72,7 +97,18 @@ def load_apartment_attributes(session: Session, df: pd.DataFrame) -> None:
 
 
 def load_user_viewings(session: Session, df: pd.DataFrame) -> None:
-    """Load user viewings data from DataFrame into database."""
+    """
+    Load user viewings data from DataFrame into database.
+    
+    Args:
+        session (Session): SQLAlchemy database session
+        df (pd.DataFrame): DataFrame containing user viewing history
+        
+    Tracks user interactions with apartments including:
+    - Viewing timestamps (in European date format)
+    - Wishlist status
+    - User engagement metrics
+    """
     print(f"Loading {len(df)} user viewings...")
     for _, row in df.iterrows():
         viewing = UserViewing(
@@ -89,16 +125,29 @@ def load_user_viewings(session: Session, df: pd.DataFrame) -> None:
 
 
 def load_bookings(session: Session, df: pd.DataFrame) -> None:
-    """Load bookings data from DataFrame into database."""
+    """
+    Load bookings data from DataFrame into database.
+    
+    Args:
+        session (Session): SQLAlchemy database session
+        df (pd.DataFrame): DataFrame containing booking information
+        
+    Processes booking records with:
+    - Multiple datetime fields (booking, checkin, checkout dates)
+    - Monetary values as Decimal for precise calculations
+    - Booking status tracking
+    """
     print(f"Loading {len(df)} bookings...")
     for _, row in df.iterrows():
         booking = Booking(
             booking_id=row["booking_id"],
             user_id=row["user_id"],
             apartment_id=row["apartment_id"],
+            # Convert all dates to datetime with European format
             booking_date=pd.to_datetime(row["booking_date"], dayfirst=True),
             checkin_date=pd.to_datetime(row["checkin_date"], dayfirst=True),
             checkout_date=pd.to_datetime(row["checkout_date"], dayfirst=True),
+            # Handle monetary values with Decimal for precision
             total_price=Decimal(str(row["total_price"]))
             if pd.notna(row["total_price"])
             else None,
@@ -117,6 +166,16 @@ def load_csv_data():
 
     This function coordinates the loading of all data files into the database,
     maintaining proper order to satisfy foreign key constraints.
+    
+    File loading order:
+    1. apartments.csv - Primary apartment listings
+    2. apartment_attributes.csv - Dependent on apartments
+    3. user_viewing.csv - Dependent on apartments
+    4. bookings.csv - Dependent on apartments
+    
+    Raises:
+        FileNotFoundError: If data directory is not found
+        Exception: For any other errors during data loading
     """
     project_root = Path(__file__).parent.parent
     data_dir = project_root / "data"
