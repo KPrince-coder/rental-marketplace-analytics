@@ -4,8 +4,15 @@ AWS RDS MySQL database setup script for the Rental Marketplace Analytics Pipelin
 
 import boto3
 import time
+import sys
+from pathlib import Path
 from botocore.exceptions import ClientError
 
+# Add the project root directory to Python path
+project_root = Path(__file__).parent.parent
+sys.path.append(str(project_root))
+
+# Now import from src
 from src.config.settings import DB_CONFIG
 
 
