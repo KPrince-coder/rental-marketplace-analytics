@@ -48,11 +48,17 @@ try:
             break
     else:
         # If not found, use the environment variable
-        STEP_FUNCTION_ARN = os.getenv("STEP_FUNCTION_ARN", "arn:aws:states:eu-west-1:529088286633:stateMachine:rental-marketplace-etl")
+        STEP_FUNCTION_ARN = os.getenv(
+            "STEP_FUNCTION_ARN",
+            "arn:aws:states:eu-west-1:529088286633:stateMachine:rental-marketplace-etl",
+        )
 except Exception as e:
     logger.warning(f"Failed to get Step Function ARN from AWS: {str(e)}")
     # Use the environment variable as fallback
-    STEP_FUNCTION_ARN = os.getenv("STEP_FUNCTION_ARN", "arn:aws:states:eu-west-1:529088286633:stateMachine:rental-marketplace-etl")
+    STEP_FUNCTION_ARN = os.getenv(
+        "STEP_FUNCTION_ARN",
+        "arn:aws:states:eu-west-1:529088286633:stateMachine:rental-marketplace-etl",
+    )
 
 
 def stop_running_glue_jobs():
@@ -69,7 +75,7 @@ def stop_running_glue_jobs():
             "transform-data",
             "s3-to-redshift-loading",
             "processed-to-redshift",
-            "generate-metrics"
+            "generate-metrics",
         ]
 
         # First, get all running jobs across all job names
@@ -82,7 +88,11 @@ def stop_running_glue_jobs():
 
                 # Filter for running jobs
                 running_job_runs = [
-                    {"JobName": job_name, "JobRunId": job_run.get("Id"), "State": job_run.get("JobRunState")}
+                    {
+                        "JobName": job_name,
+                        "JobRunId": job_run.get("Id"),
+                        "State": job_run.get("JobRunState"),
+                    }
                     for job_run in response.get("JobRuns", [])
                     if job_run.get("JobRunState") in ["STARTING", "RUNNING", "STOPPING"]
                 ]
@@ -95,7 +105,9 @@ def stop_running_glue_jobs():
 
                 # Stop running jobs
                 job_run_ids = [job_run["JobRunId"] for job_run in running_job_runs]
-                logger.info(f"Found {len(job_run_ids)} running job runs to stop for {job_name}: {job_run_ids}")
+                logger.info(
+                    f"Found {len(job_run_ids)} running job runs to stop for {job_name}: {job_run_ids}"
+                )
 
                 if job_run_ids:
                     response = glue.batch_stop_job_run(
@@ -103,7 +115,9 @@ def stop_running_glue_jobs():
                     )
 
                     successful_runs = response.get("SuccessfulSubmissions", [])
-                    logger.info(f"Successfully stopped {len(successful_runs)} job runs for {job_name}")
+                    logger.info(
+                        f"Successfully stopped {len(successful_runs)} job runs for {job_name}"
+                    )
 
             except Exception as e:
                 logger.warning(f"Error stopping job runs for {job_name}: {str(e)}")
@@ -124,14 +138,15 @@ def stop_running_glue_jobs():
                 for job in all_running_jobs:
                     try:
                         response = glue.get_job_run(
-                            JobName=job["JobName"],
-                            RunId=job["JobRunId"]
+                            JobName=job["JobName"], RunId=job["JobRunId"]
                         )
 
                         current_state = response["JobRun"]["JobRunState"]
 
                         if current_state in ["STARTING", "RUNNING", "STOPPING"]:
-                            logger.info(f"Job {job['JobName']} (ID: {job['JobRunId']}) is still in state: {current_state}")
+                            logger.info(
+                                f"Job {job['JobName']} (ID: {job['JobRunId']}) is still in state: {current_state}"
+                            )
                             still_running = True
                     except Exception as e:
                         logger.warning(f"Error checking job state: {str(e)}")
@@ -145,7 +160,9 @@ def stop_running_glue_jobs():
                 elapsed_time += wait_interval
 
             if elapsed_time >= max_wait_time:
-                logger.warning("Timed out waiting for jobs to stop. Some jobs may still be running.")
+                logger.warning(
+                    "Timed out waiting for jobs to stop. Some jobs may still be running."
+                )
 
         # Also check for any other running jobs in the account
         try:
@@ -163,11 +180,14 @@ def stop_running_glue_jobs():
                         running_job_runs = [
                             job_run.get("Id")
                             for job_run in response.get("JobRuns", [])
-                            if job_run.get("JobRunState") in ["STARTING", "RUNNING", "STOPPING"]
+                            if job_run.get("JobRunState")
+                            in ["STARTING", "RUNNING", "STOPPING"]
                         ]
 
                         if running_job_runs:
-                            logger.info(f"Found {len(running_job_runs)} running job runs for other job: {job_name}")
+                            logger.info(
+                                f"Found {len(running_job_runs)} running job runs for other job: {job_name}"
+                            )
 
                             # Stop these jobs too
                             response = glue.batch_stop_job_run(
@@ -175,9 +195,13 @@ def stop_running_glue_jobs():
                             )
 
                             successful_runs = response.get("SuccessfulSubmissions", [])
-                            logger.info(f"Successfully stopped {len(successful_runs)} job runs for other job: {job_name}")
+                            logger.info(
+                                f"Successfully stopped {len(successful_runs)} job runs for other job: {job_name}"
+                            )
                     except Exception as e:
-                        logger.warning(f"Error checking/stopping other job {job_name}: {str(e)}")
+                        logger.warning(
+                            f"Error checking/stopping other job {job_name}: {str(e)}"
+                        )
         except Exception as e:
             logger.warning(f"Error checking for other running jobs: {str(e)}")
 
@@ -209,15 +233,25 @@ def trigger_step_function():
             "mysql_user": os.getenv("DB_USER", "root"),
             "mysql_password": os.getenv("DB_PASSWORD", "password"),
             "s3_bucket": S3_BUCKET,
-            "redshift_connection": os.getenv("REDSHIFT_CONNECTION", "rental-marketplace-redshift"),
+            "redshift_connection": os.getenv(
+                "REDSHIFT_CONNECTION", "rental-marketplace-redshift"
+            ),
             "redshift_database": os.getenv("REDSHIFT_DATABASE", "rental_marketplace"),
-            "region": AWS_REGION
+            "redshift_host": os.getenv(
+                "REDSHIFT_HOST",
+                "rental-marketplace-redshift.cacze0tfwgno.eu-west-1.redshift.amazonaws.com",
+            ),
+            "redshift_port": os.getenv("REDSHIFT_PORT", "5439"),
+            "redshift_user": os.getenv("REDSHIFT_USER", "admin"),
+            "redshift_password": os.getenv(
+                "REDSHIFT_PASSWORD", "MyRedshiftPassword123"
+            ),
+            "region": AWS_REGION,
         }
 
         # Start execution
         response = sfn.start_execution(
-            stateMachineArn=STEP_FUNCTION_ARN,
-            input=json.dumps(input_params)
+            stateMachineArn=STEP_FUNCTION_ARN, input=json.dumps(input_params)
         )
 
         execution_arn = response["executionArn"]
