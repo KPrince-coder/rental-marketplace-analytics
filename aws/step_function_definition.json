@@ -1,0 +1,195 @@
+{
+  "Comment": "ETL Pipeline for Rental Marketplace",
+  "StartAt": "Extract MySQL to S3",
+  "States": {
+    "Extract MySQL to S3": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "mysql-to-s3-extraction",
+        "Arguments": {
+          "--mysql_host.$": "$.mysql_host",
+          "--mysql_port.$": "$.mysql_port",
+          "--mysql_database.$": "$.mysql_database",
+          "--mysql_user.$": "$.mysql_user",
+          "--mysql_password.$": "$.mysql_password",
+          "--s3_bucket.$": "$.s3_bucket",
+          "--s3_prefix": "raw/",
+          "--region.$": "$.region"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Extraction Failed"
+        }
+      ],
+      "ResultPath": "$.extractResult",
+      "Next": "Transform Data"
+    },
+    "Transform Data": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "transform-data",
+        "Arguments": {
+          "--s3_bucket.$": "$.s3_bucket",
+          "--raw_prefix": "raw/",
+          "--processed_prefix": "processed/",
+          "--region.$": "$.region"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Transformation Failed"
+        }
+      ],
+      "ResultPath": "$.transformResult",
+      "Next": "Load Raw Data to Redshift"
+    },
+    "Load Raw Data to Redshift": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "s3-to-redshift-loading",
+        "Arguments": {
+          "--s3_bucket.$": "$.s3_bucket",
+          "--s3_prefix": "raw/",
+          "--redshift_connection.$": "$.redshift_connection",
+          "--redshift_database.$": "$.redshift_database",
+          "--redshift_schema": "public",
+          "--region.$": "$.region"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Raw Loading Failed"
+        }
+      ],
+      "ResultPath": "$.rawLoadResult",
+      "Next": "Load Processed Data to Redshift"
+    },
+    "Load Processed Data to Redshift": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "processed-to-redshift",
+        "Arguments": {
+          "--s3_bucket.$": "$.s3_bucket",
+          "--processed_prefix": "processed/",
+          "--redshift_connection.$": "$.redshift_connection",
+          "--redshift_database.$": "$.redshift_database",
+          "--redshift_schema": "curated",
+          "--region.$": "$.region"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Processed Loading Failed"
+        }
+      ],
+      "ResultPath": "$.processedLoadResult",
+      "Next": "Generate Metrics"
+    },
+    "Generate Metrics": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::glue:startJobRun.sync",
+      "Parameters": {
+        "JobName": "generate-metrics",
+        "Arguments": {
+          "--s3_bucket.$": "$.s3_bucket",
+          "--processed_prefix": "processed/",
+          "--metrics_prefix": "metrics/",
+          "--redshift_connection.$": "$.redshift_connection",
+          "--redshift_database.$": "$.redshift_database",
+          "--redshift_schema": "presentation",
+          "--region.$": "$.region"
+        }
+      },
+      "Retry": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 60,
+          "MaxAttempts": 3,
+          "BackoffRate": 2.0
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "Metrics Generation Failed"
+        }
+      ],
+      "ResultPath": "$.metricsResult",
+      "Next": "ETL Success"
+    },
+    "Extraction Failed": {
+      "Type": "Fail",
+      "Error": "ExtractDataFailed",
+      "Cause": "MySQL to S3 extraction failed"
+    },
+    "Transformation Failed": {
+      "Type": "Fail",
+      "Error": "TransformDataFailed",
+      "Cause": "Data transformation failed"
+    },
+    "Raw Loading Failed": {
+      "Type": "Fail",
+      "Error": "RawLoadingFailed",
+      "Cause": "Loading raw data to Redshift failed"
+    },
+    "Processed Loading Failed": {
+      "Type": "Fail",
+      "Error": "ProcessedLoadingFailed",
+      "Cause": "Loading processed data to Redshift failed"
+    },
+    "Metrics Generation Failed": {
+      "Type": "Fail",
+      "Error": "MetricsGenerationFailed",
+      "Cause": "Metrics generation failed"
+    },
+    "ETL Success": {
+      "Type": "Succeed"
+    }
+  }
+}

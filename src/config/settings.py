@@ -1,46 +1,37 @@
 """
-Configuration settings for the Rental Marketplace Analytics Pipeline.
+Configuration settings for the rental marketplace ETL pipeline.
 """
 
 import os
-from dotenv import load_dotenv
+from typing import Dict, Any
 
-# Load environment variables
-load_dotenv()
-
-# Database Configuration
-DB_CONFIG = {
-    "host": os.getenv(
-        "DB_HOST", "rental-marketplace-db.czaiaq68azf6.eu-west-1.rds.amazonaws.com"
-    ),
-    "user": os.getenv("DB_USER", "admin"),
-    "password": os.getenv("DB_PASSWORD"),
+# Database configuration
+DB_CONFIG: Dict[str, Any] = {
+    "host": os.getenv("DB_HOST", "localhost"),
+    "port": int(os.getenv("DB_PORT", "3306")),
     "database": os.getenv("DB_NAME", "rental_marketplace"),
-    "port": int(os.getenv("DB_PORT", 3306)),
+    "user": os.getenv("DB_USER", "admin"),
+    "password": os.getenv("DB_PASSWORD", "password"),
 }
 
-
-# AWS Configuration
-AWS_CONFIG = {
+# AWS configuration
+AWS_CONFIG: Dict[str, Any] = {
     "region": os.getenv("AWS_REGION", "eu-west-1"),
-    "s3_bucket": os.getenv("S3_BUCKET"),
-    "redshift_cluster": os.getenv("REDSHIFT_CLUSTER"),
-    "redshift_database": os.getenv("REDSHIFT_DATABASE"),
-    "redshift_user": os.getenv("REDSHIFT_USER"),
-    "redshift_password": os.getenv("REDSHIFT_PASSWORD"),
-    "redshift_port": int(os.getenv("REDSHIFT_PORT", 5439)),
+    "s3_bucket": os.getenv("S3_BUCKET", "rental-marketplace-data"),
+    "glue_role_arn": os.getenv("GLUE_ROLE_ARN", ""),
+    "step_function_role_arn": os.getenv("STEP_FUNCTION_ROLE_ARN", ""),
+    "step_function_arn": os.getenv("STEP_FUNCTION_ARN", ""),
 }
 
-# ETL Configuration
-ETL_CONFIG = {
-    "batch_size": int(os.getenv("ETL_BATCH_SIZE", 1000)),
-    "max_retries": int(os.getenv("ETL_MAX_RETRIES", 3)),
-    "timeout": int(os.getenv("ETL_TIMEOUT", 300)),
-}
-
-# Logging Configuration
-LOG_CONFIG = {
-    "level": os.getenv("LOG_LEVEL", "INFO"),
-    "format": "%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-    "file": os.getenv("LOG_FILE", "pipeline.log"),
+# Redshift configuration
+REDSHIFT_CONFIG: Dict[str, Any] = {
+    "connection": os.getenv("REDSHIFT_CONNECTION", "rental-marketplace-redshift"),
+    "database": os.getenv("REDSHIFT_DATABASE", "rental_marketplace"),
+    "host": os.getenv("REDSHIFT_HOST", ""),
+    "port": int(os.getenv("REDSHIFT_PORT", "5439")),
+    "user": os.getenv("REDSHIFT_USER", "admin"),
+    "password": os.getenv("REDSHIFT_PASSWORD", ""),
+    "schema_raw": "public",
+    "schema_curated": "curated",
+    "schema_presentation": "presentation",
 }

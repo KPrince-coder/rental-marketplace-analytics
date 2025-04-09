@@ -1,0 +1,32 @@
+rental_marketplace/
+├── src/
+│   ├── __init__.py
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py
+│   ├── database/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   └── connection.py
+│   ├── etl/
+│   │   ├── __init__.py
+│   │   ├── extract.py
+│   │   ├── transform.py
+│   │   └── load.py
+│   └── utils/
+│       ├── __init__.py
+│       └── logger.py
+├── tests/
+│   ├── __init__.py
+│   ├── test_database/
+│   └── test_etl/
+├── docs/
+│   ├── setup.md
+│   └── architecture.md
+├── scripts/
+│   ├── setup_database.py
+│   └── setup_aws.py
+├── .env.example
+├── README.md
+├── requirements.txt
+└── pyproject.toml
