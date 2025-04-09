@@ -72,13 +72,33 @@ s3_base_path = f"s3://{args['s3_bucket']}/{args['s3_prefix']}"
 
 # Function to get the latest timestamp folder for a table
 def get_latest_timestamp_folder(bucket, prefix):
+    print(f"Looking for folders in s3://{bucket}/{prefix}")
     response = s3.list_objects_v2(Bucket=bucket, Prefix=prefix, Delimiter="/")
 
+    print(f"S3 response: {response}")
+
+    # Check if there are any objects directly in this prefix (not just folders)
+    if "Contents" in response and response["Contents"]:
+        print(f"Found {len(response['Contents'])} objects directly in {prefix}")
+        # If there are objects directly in this prefix, use the prefix itself
+        return prefix
+
     if "CommonPrefixes" not in response:
-        raise Exception(f"No folders found in {prefix}")
+        print(f"WARNING: No folders found in {prefix}")
+        # Try listing without delimiter to see all objects
+        all_objects = s3.list_objects_v2(Bucket=bucket, Prefix=prefix)
+        print(f"All objects: {all_objects}")
+
+        # If there are any objects, use the prefix itself
+        if "Contents" in all_objects and all_objects["Contents"]:
+            print(f"Found {len(all_objects['Contents'])} objects in {prefix}")
+            return prefix
+
+        raise Exception(f"No folders or objects found in {prefix}")
 
     # Get all timestamp folders
     timestamp_folders = [p["Prefix"] for p in response["CommonPrefixes"]]
+    print(f"Found folders: {timestamp_folders}")
 
     # Sort by timestamp (assuming format YYYYMMDD_HHMMSS)
     timestamp_folders.sort(reverse=True)
@@ -86,7 +106,9 @@ def get_latest_timestamp_folder(bucket, prefix):
     if not timestamp_folders:
         raise Exception(f"No timestamp folders found in {prefix}")
 
-    return timestamp_folders[0]
+    latest_folder = timestamp_folders[0]
+    print(f"Latest folder: {latest_folder}")
+    return latest_folder
 
 
 # Loop through each table and load data to Redshift
@@ -120,6 +142,17 @@ for source_table, target_table in table_mapping.items():
         # Define the Redshift table name
         redshift_table = target_table
 
+        # Print detailed connection info (without password)
+        print(f"Connecting to Redshift with:")
+        print(f"  URL: {jdbc_url}")
+        print(f"  User: {redshift_user}")
+        print(f"  Table: {redshift_table}")
+        print(f"  Temp Dir: s3://{args['s3_bucket']}/temp/")
+
+        # Add preactions to truncate the table first
+        preactions = f"truncate table {redshift_table};"
+        print(f"Preactions: {preactions}")
+
         # Write to Redshift using direct JDBC connection
         glueContext.write_dynamic_frame.from_options(
             frame=dynamic_frame,
@@ -130,14 +163,20 @@ for source_table, target_table in table_mapping.items():
                 "password": redshift_password,
                 "dbtable": redshift_table,
                 "redshiftTmpDir": f"s3://{args['s3_bucket']}/temp/",
+                "preactions": preactions,
+                "extracopyoptions": "TRUNCATECOLUMNS",
             },
+            transformation_ctx=f"write_{source_table}_to_redshift",
             redshift_tmp_dir=f"s3://{args['s3_bucket']}/temp/",
         )
 
         print(f"Successfully loaded {count} rows to {redshift_table}")
 
     except Exception as e:
+        import traceback
+
         print(f"Error loading table {source_table} to {target_table}: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
 
 print("Data loading completed for all tables.")
 

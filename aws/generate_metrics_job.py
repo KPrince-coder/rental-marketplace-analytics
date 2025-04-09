@@ -215,6 +215,17 @@ try:
     # Write metrics to Redshift
     redshift_table = "presentation.presentation_metrics"
 
+    # Print detailed connection info (without password)
+    print(f"Connecting to Redshift with:")
+    print(f"  URL: {jdbc_url}")
+    print(f"  User: {redshift_user}")
+    print(f"  Table: {redshift_table}")
+    print(f"  Temp Dir: s3://{args['s3_bucket']}/temp/")
+
+    # Add preactions to truncate the table first
+    preactions = f"truncate table {redshift_table};"
+    print(f"Preactions: {preactions}")
+
     # Write to Redshift using direct JDBC connection
     glueContext.write_dynamic_frame.from_options(
         frame=metrics_frame,
@@ -225,14 +236,20 @@ try:
             "password": redshift_password,
             "dbtable": redshift_table,
             "redshiftTmpDir": f"s3://{args['s3_bucket']}/temp/",
+            "preactions": preactions,
+            "extracopyoptions": "TRUNCATECOLUMNS",
         },
+        transformation_ctx="write_metrics_to_redshift",
         redshift_tmp_dir=f"s3://{args['s3_bucket']}/temp/",
     )
 
     print(f"Successfully loaded metrics to {redshift_table}")
 
 except Exception as e:
+    import traceback
+
     print(f"Error generating metrics: {str(e)}")
+    print(f"Traceback: {traceback.format_exc()}")
 
 print("Metrics generation completed.")
 

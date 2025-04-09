@@ -121,6 +121,17 @@ for source_table, target_table in table_mapping.items():
         # Define the Redshift table name
         redshift_table = target_table
 
+        # Print detailed connection info (without password)
+        print(f"Connecting to Redshift with:")
+        print(f"  URL: {jdbc_url}")
+        print(f"  User: {redshift_user}")
+        print(f"  Table: {redshift_table}")
+        print(f"  Temp Dir: s3://{args['s3_bucket']}/temp/")
+
+        # Add preactions to truncate the table first
+        preactions = f"truncate table {redshift_table};"
+        print(f"Preactions: {preactions}")
+
         # Write to Redshift using direct JDBC connection
         glueContext.write_dynamic_frame.from_options(
             frame=dynamic_frame,
@@ -131,16 +142,22 @@ for source_table, target_table in table_mapping.items():
                 "password": redshift_password,
                 "dbtable": redshift_table,
                 "redshiftTmpDir": f"s3://{args['s3_bucket']}/temp/",
+                "preactions": preactions,
+                "extracopyoptions": "TRUNCATECOLUMNS",
             },
+            transformation_ctx=f"write_{source_table}_to_redshift",
             redshift_tmp_dir=f"s3://{args['s3_bucket']}/temp/",
         )
 
         print(f"Successfully loaded {count} processed rows to {redshift_table}")
 
     except Exception as e:
+        import traceback
+
         print(
             f"Error loading processed table {source_table} to {target_table}: {str(e)}"
         )
+        print(f"Traceback: {traceback.format_exc()}")
 
 print("Processed data loading completed for all tables.")
 
