@@ -142,12 +142,14 @@ aws stepfunctions start-execution --state-machine-arn <your-state-machine-arn>
 ## Key Business Metrics
 
 ### Rental Performance Metrics
+
 - **Average Listing Price**: Weekly average price of active rental listings
 - **Occupancy Rate**: Percentage of available rental nights booked over a month
 - **Most Popular Locations**: Most frequently booked cities every week
 - **Top Performing Listings**: Properties with highest confirmed revenue per week
 
 ### User Engagement Metrics
+
 - **Total Bookings per User**: Count of rentals booked per user every week
 - **Average Booking Duration**: Mean duration of confirmed stays over time
 - **Repeat Customer Rate**: Users who book more than once within a rolling 30-day period
