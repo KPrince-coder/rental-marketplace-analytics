@@ -69,9 +69,13 @@ class RedshiftSetup:
                     logger.info(f"Found Redshift cluster: {self.host}:{self.port}")
                     return
 
-            logger.warning(f"Could not find Redshift cluster with identifier containing '{self.connection_name}'")
+            logger.warning(
+                f"Could not find Redshift cluster with identifier containing '{self.connection_name}'"
+            )
         except Exception as e:
-            logger.warning(f"Failed to get Redshift connection details from AWS: {str(e)}")
+            logger.warning(
+                f"Failed to get Redshift connection details from AWS: {str(e)}"
+            )
             logger.warning("Will try to use environment variables instead")
 
         # If we get here, we couldn't find the cluster or there was an error
@@ -104,7 +108,6 @@ class RedshiftSetup:
                 logger.info("Connected to Redshift successfully")
             except Exception as conn_error:
                 logger.warning(f"Failed to connect to Redshift: {str(conn_error)}")
-                
 
         except Exception as e:
             logger.error(f"Failed to set up Redshift connection: {str(e)}")
@@ -149,9 +152,11 @@ class RedshiftSetup:
 
         # List of SQL files to execute in order
         sql_files = [
+            "00_create_schemas.sql",
             "01_create_raw_layer.sql",
             "02_create_curated_layer.sql",
             "03_create_presentation_layer.sql",
+            "03_create_presentation_layer_metrics.sql",
         ]
 
         # Execute each SQL file
@@ -166,30 +171,11 @@ class RedshiftSetup:
 
     def populate_initial_data(self) -> None:
         """Populate the schema with initial data transformations."""
-        # Get the SQL directory
-        project_root = Path(__file__).parent.parent
-        sql_dir = project_root / "sql" / "redshift"
-
-        # Check if the directory exists
-        if not sql_dir.exists():
-            logger.error(f"SQL directory not found: {sql_dir}")
-            raise FileNotFoundError(f"SQL directory not found: {sql_dir}")
-
-        # List of SQL files to execute for data population
-        sql_files = [
-            "04_populate_curated_layer.sql",
-            "05_populate_presentation_layer_final.sql",  # Using the final version for Redshift compatibility
-        ]
-
-        # Execute each SQL file
-        for sql_file in sql_files:
-            file_path = sql_dir / sql_file
-            if not file_path.exists():
-                logger.warning(f"SQL file not found: {file_path}")
-                continue
-
-            logger.info(f"Populating data from {file_path}")
-            self.execute_sql_file(str(file_path))
+        # This method is intentionally left empty as data population
+        # should be handled by the Glue jobs, not by this setup script.
+        logger.info(
+            "Data population will be handled by the ETL pipeline via Glue jobs."
+        )
 
 
 def create_iam_role_for_redshift() -> str:
@@ -345,7 +331,9 @@ def create_redshift_cluster(
                 raise
 
         # Wait for the cluster to be available
-        max_retries = 20  # Maximum number of retries (10 minutes at 30 seconds per retry)
+        max_retries = (
+            20  # Maximum number of retries (10 minutes at 30 seconds per retry)
+        )
         retries = 0
 
         while retries < max_retries:
@@ -368,7 +356,9 @@ def create_redshift_cluster(
                 else:
                     logger.info("Cluster is being provisioned, no endpoint yet...")
 
-                logger.info(f"Waiting for Redshift cluster to be available... Status: {cluster_status}")
+                logger.info(
+                    f"Waiting for Redshift cluster to be available... Status: {cluster_status}"
+                )
                 retries += 1
                 time.sleep(30)
 
@@ -379,7 +369,9 @@ def create_redshift_cluster(
 
         # If we get here, the cluster didn't become available in time
         logger.error("Timed out waiting for Redshift cluster to become available")
-        logger.error("You can check the status in the AWS console and run the script again later")
+        logger.error(
+            "You can check the status in the AWS console and run the script again later"
+        )
         raise TimeoutError("Timed out waiting for Redshift cluster")
 
     except ClientError as e:
@@ -392,7 +384,9 @@ def ensure_redshift_cluster_exists():
     try:
         # Check if we have credentials for Redshift
         if not REDSHIFT_CONFIG["user"] or not REDSHIFT_CONFIG["password"]:
-            logger.warning("Redshift username or password not set in environment variables")
+            logger.warning(
+                "Redshift username or password not set in environment variables"
+            )
             logger.warning("Using default values for development/testing")
             REDSHIFT_CONFIG["user"] = "admin"
             REDSHIFT_CONFIG["password"] = "Admin123!"
@@ -425,16 +419,18 @@ def ensure_redshift_cluster_exists():
                 # Update or add Redshift host and port
                 if "REDSHIFT_HOST=" in env_content:
                     env_content = env_content.replace(
-                        "REDSHIFT_HOST=" + env_content.split("REDSHIFT_HOST=")[1].split("\n")[0],
-                        f"REDSHIFT_HOST={endpoint}"
+                        "REDSHIFT_HOST="
+                        + env_content.split("REDSHIFT_HOST=")[1].split("\n")[0],
+                        f"REDSHIFT_HOST={endpoint}",
                     )
                 else:
                     env_content += f"\nREDSHIFT_HOST={endpoint}\n"
 
                 if "REDSHIFT_PORT=" in env_content:
                     env_content = env_content.replace(
-                        "REDSHIFT_PORT=" + env_content.split("REDSHIFT_PORT=")[1].split("\n")[0],
-                        f"REDSHIFT_PORT={port}"
+                        "REDSHIFT_PORT="
+                        + env_content.split("REDSHIFT_PORT=")[1].split("\n")[0],
+                        f"REDSHIFT_PORT={port}",
                     )
                 else:
                     env_content += f"REDSHIFT_PORT={port}\n"
@@ -469,11 +465,11 @@ def main():
             # Connect to Redshift
             redshift.connect()
 
-            # Set up schema
+            # Set up schema only
             redshift.setup_schema()
 
-            # Populate initial data
-            redshift.populate_initial_data()
+            # Note: Data population is handled by the ETL pipeline via Glue jobs
+            # and not by this setup script
 
             logger.info("Redshift setup completed successfully")
             return True
