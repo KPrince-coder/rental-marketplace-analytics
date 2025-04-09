@@ -4,6 +4,10 @@
 
 This project implements a batch data processing pipeline for a rental marketplace platform (similar to Airbnb) to enable analytical reporting on rental listings and user interactions. The pipeline extracts data from AWS Aurora MySQL, processes it using AWS Glue, and loads it into Amazon Redshift for business intelligence and reporting.
 
+![Rental Marketplace Analytics Architecture Diagram](docs/images/rental_marketplace_analytics_architecture_diagram.png)
+
+*Figure 1: High-level architecture diagram of the rental marketplace analytics pipeline*
+
 ## Project Structure
 
 ```markdown
@@ -116,6 +120,10 @@ aws stepfunctions start-execution --state-machine-arn <your-state-machine-arn>
 - View Glue job logs
 - Monitor CloudWatch metrics
 
+![Step Function Graph View](docs/images/step_function_graph_view.png)
+
+*Figure 3: AWS Step Function graph view showing the ETL pipeline workflow*
+
 ## Data Flow
 
 1. Extract data from MySQL RDS (Aurora)
@@ -126,6 +134,10 @@ aws stepfunctions start-execution --state-machine-arn <your-state-machine-arn>
    - Raw Layer: Data as close as possible to the source
    - Curated Layer: Cleaned and transformed data
    - Presentation Layer: Aggregated data for reporting
+
+![Project Mind Map](docs/images/project_mindmap.png)
+
+*Figure 2: Mind map of the project components and data flow*
 
 ## Key Business Metrics
 
