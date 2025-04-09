@@ -76,8 +76,12 @@
           "--s3_prefix": "raw/",
           "--redshift_connection.$": "$.redshift_connection",
           "--redshift_database.$": "$.redshift_database",
-          "--redshift_schema": "public",
-          "--region.$": "$.region"
+          "--redshift_schema": "raw_data",
+          "--region.$": "$.region",
+          "--redshift_host.$": "$.redshift_host",
+          "--redshift_port.$": "$.redshift_port",
+          "--redshift_user.$": "$.redshift_user",
+          "--redshift_password.$": "$.redshift_password"
         }
       },
       "Retry": [
@@ -109,7 +113,11 @@
           "--redshift_connection.$": "$.redshift_connection",
           "--redshift_database.$": "$.redshift_database",
           "--redshift_schema": "curated",
-          "--region.$": "$.region"
+          "--region.$": "$.region",
+          "--redshift_host.$": "$.redshift_host",
+          "--redshift_port.$": "$.redshift_port",
+          "--redshift_user.$": "$.redshift_user",
+          "--redshift_password.$": "$.redshift_password"
         }
       },
       "Retry": [
@@ -142,7 +150,11 @@
           "--redshift_connection.$": "$.redshift_connection",
           "--redshift_database.$": "$.redshift_database",
           "--redshift_schema": "presentation",
-          "--region.$": "$.region"
+          "--region.$": "$.region",
+          "--redshift_host.$": "$.redshift_host",
+          "--redshift_port.$": "$.redshift_port",
+          "--redshift_user.$": "$.redshift_user",
+          "--redshift_password.$": "$.redshift_password"
         }
       },
       "Retry": [
